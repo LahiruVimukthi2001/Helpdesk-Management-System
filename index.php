@@ -13,6 +13,10 @@ if (!isset($_SESSION['user_id'])) {
 $ticketManager = new TicketManager($pdo);
 $adminManager = new AdminManager($pdo);
 $message = '';
+if (isset($_SESSION['operational_message'])) {
+    $message = $_SESSION['operational_message'];
+    unset($_SESSION['operational_message']); // Clear it so it only displays once!
+}
 
 $currentUserId   = $_SESSION['user_id'];
 $currentUserName = $_SESSION['user_name'];
@@ -50,14 +54,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!empty($title) && !empty($description)) {
             $ticketManager->createTicket($title, $description, $priority, $currentUserId, $uploadedFilePath);
-            $message = "<div class='alert alert-success alert-dismissible fade show shadow-sm' role='alert'><i class='bi bi-check-circle-fill me-2'></i>Support ticket opened and queued inside operations grid.<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+            
+            // Store the message inside the session so it survives the redirect
+            $_SESSION['operational_message'] = "<div class='alert alert-success alert-dismissible fade show shadow-sm' role='alert'><i class='bi bi-check-circle-fill me-2'></i>Support ticket opened and queued inside operations grid.<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+            
+            // REDIRECT back to the same page to clear the POST data buffer
+            header("Location: index.php");
+            exit;
         }
     }
 
     // Requester Action: Cancel Own Ticket
     if ($action === 'requester_cancel') {
         $ticketId = (int)($_POST['ticket_id'] ?? 0);
-        $ticketManager->updateStatus($ticketId, 'Closed');
+        // FIXED: Added current user ID to track who canceled it
+        $ticketManager->updateStatus($ticketId, 'Closed', $currentUserId);
         $message = "<div class='alert alert-warning alert-dismissible fade show shadow-sm' role='alert'><i class='bi bi-info-circle-fill me-2'></i>Ticket #{$ticketId} has been canceled by requester.<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
     }
 
@@ -109,18 +120,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update_status' && ($currentRole === 'Admin' || $currentRole === 'Agent')) {
         $ticketId = (int)($_POST['ticket_id'] ?? 0);
         $newStatus = $_POST['status'] ?? '';
-        $ticketManager->updateStatus($ticketId, $newStatus);
+        // FIXED: Added current user ID to satisfy logging arguments mapping criteria
+        $ticketManager->updateStatus($ticketId, $newStatus, $currentUserId);
     }
 
     if ($action === 'admin_assign' && $currentRole === 'Admin') {
         $ticketId = (int)($_POST['ticket_id'] ?? 0);
         $agentId = (int)($_POST['agent_id'] ?? 0);
-        $ticketManager->forceAssignTicket($ticketId, $agentId);
+        // FIXED: Added current admin user ID executing the reassignment action
+        $ticketManager->forceAssignTicket($ticketId, $agentId, $currentUserId);
     }
 
     if ($action === 'admin_delete' && $currentRole === 'Admin') {
         $ticketId = (int)($_POST['ticket_id'] ?? 0);
-        $ticketManager->deleteTicket($ticketId);
+        // FIXED: Added current admin user ID authorized for records scrubbing execution
+        $ticketManager->deleteTicket($ticketId, $currentUserId);
     }
 }
 
@@ -184,6 +198,9 @@ $priorityBadges = [
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link fw-bold text-info <?php echo isset($_GET['edit_user']) ? 'active' : ''; ?>" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-pane" type="button" role="tab"><i class="bi bi-people-fill me-2"></i>User Access Management</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-primary" id="report-generate-tab" data-bs-toggle="tab" data-bs-target="#report-generate-pane" type="button" role="tab"><i class="bi bi-file-earmark-bar-graph-fill me-2"></i>Report Generate Area</button>
             </li>
         <?php endif; ?>
     </ul>
@@ -288,7 +305,7 @@ $priorityBadges = [
                                                     </div>
                                                 <?php elseif ($currentRole === 'Requester'): ?>
                                                     <div class="d-flex justify-content-end align-items-center">
-                                                        <?php if (($ticket['user_id'] ?? 0) == $currentUserId && !in_array($ticket['status'], ['Resolved', 'Closed'])): ?>
+                                                        <?php if (($ticket['created_by'] ?? 0) == $currentUserId && !in_array($ticket['status'], ['Resolved', 'Closed'])): ?>
                                                             <form action="index.php" method="POST" onsubmit="return confirm('Cancel this ticket?');">
                                                                 <input type="hidden" name="action" value="requester_cancel">
                                                                 <input type="hidden" name="ticket_id" value="<?php echo $ticket['id']; ?>">
@@ -432,41 +449,32 @@ $priorityBadges = [
                 </div>
 
                 <div class="col-12 col-lg-8">
-                    <div class="card border-0 shadow-sm p-4">
-                        <h6 class="fw-bold border-bottom pb-2 text-secondary mb-3"><i class="bi bi-shield-shaded me-2"></i>Current Domain Directory Roster Logs</h6>
+                    <div class="card border-0 shadow-sm">
                         <div class="table-responsive">
-                            <table class="table table-sm align-middle table-hover mb-0">
-                                <thead class="table-light text-secondary small">
-                                    <tr><th>Domain Name</th><th>Email Context</th><th>Role Tier</th><th>Provision Date</th><th class="text-end pe-3">Actions</th></tr>
+                            <table class="table align-middle mb-0">
+                                <thead class="table-light small">
+                                    <tr><th class="ps-3">Account Profile</th><th>Identity Contact</th><th>Assigned Authorization</th><th class="pe-3 text-end">Control Panel</th></tr>
                                 </thead>
-                                <tbody class="small">
-                                    <?php foreach ($userRoster as $usr): ?>
+                                <tbody>
+                                    <?php foreach ($userRoster as $rosterUser): ?>
                                         <tr>
-                                            <td class="fw-bold text-dark"><?php echo htmlspecialchars($usr['name']); ?></td>
-                                            <td class="text-muted"><code><?php echo htmlspecialchars($usr['email']); ?></code></td>
+                                            <td class="ps-3 fw-bold text-dark text-capitalize"><?php echo htmlspecialchars($rosterUser['name']); ?></td>
+                                            <td class="font-monospace small text-secondary"><?php echo htmlspecialchars($rosterUser['email']); ?></td>
                                             <td>
-                                                <span class="badge py-1 <?php echo $usr['role'] === 'Admin' ? 'bg-danger-subtle text-danger' : ($usr['role'] === 'Agent' ? 'bg-success-subtle text-success' : 'bg-light text-muted border'); ?>">
-                                                    <?php echo $usr['role']; ?>
+                                                <span class="badge <?php echo $rosterUser['role'] === 'Admin' ? 'bg-warning text-dark' : ($rosterUser['role'] === 'Agent' ? 'bg-primary' : 'bg-light text-muted border'); ?>">
+                                                    <?php echo $rosterUser['role']; ?>
                                                 </span>
                                             </td>
-                                            <td class="text-muted font-monospace" style="font-size:0.75rem;">
-                                                <?php echo (!empty($usr['created_at'])) ? date('Y-m-d', strtotime($usr['created_at'])) : 'Not Recorded'; ?>
-                                            </td>
-                                            <td class="text-end pe-3">
-                                                <div class="btn-group shadow-sm rounded">
-                                                    <a href="index.php?edit_user=<?php echo $usr['id']; ?>&amp;tab=users-pane" class="btn btn-sm btn-light border" title="Modify Configuration">
-                                                        <i class="bi bi-pencil-square text-primary"></i>
-                                                    </a>
-                                                    <?php if ($usr['id'] !== $currentUserId): ?>
-                                                        <form action="index.php" method="POST" class="d-inline" onsubmit="return confirm('Purge this access profile identity permanently from storage?');">
-                                                            <input type="hidden" name="action" value="admin_delete_user">
-                                                            <input type="hidden" name="user_id" value="<?php echo $usr['id']; ?>">
-                                                            <button type="submit" class="btn btn-sm btn-light border" title="Purge Record">
-                                                                <i class="bi bi-trash3 text-danger"></i>
-                                                            </button>
+                                            <td class="pe-3 text-end">
+                                                <div class="d-flex gap-2 justify-content-end">
+                                                    <a href="index.php?edit_user=<?php echo $rosterUser['id']; ?>#users-pane" class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold" style="font-size:0.75rem;"><i class="bi bi-pencil-square"></i> Modify</a>
+                                                    <?php if ($rosterUser['id'] !== $currentUserId): ?>
+                                                        <form action="index.php" method="POST" onsubmit="return confirm('Revoke user authorization permanently?');" class="d-inline">
+                                                            <input type="hidden" name="action" value="admin_delete_user"><input type="hidden" name="user_id" value="<?php echo $rosterUser['id']; ?>">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-trash3"></i> Revoke</button>
                                                         </form>
                                                     <?php else: ?>
-                                                        <button class="btn btn-sm btn-light border" disabled title="Current Session User"><i class="bi bi-lock text-muted"></i></button>
+                                                        <span class="badge bg-dark-subtle text-dark border px-2 py-1 small opacity-75" style="font-size:0.65rem;">Self (Locked)</span>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
@@ -479,22 +487,147 @@ $priorityBadges = [
                 </div>
             </div>
         </div>
+
+        <div class="tab-pane fade" id="report-generate-pane" role="tabpanel" aria-labelledby="report-generate-tab">
+            <div class="row g-4">
+                
+                <div class="col-12 col-lg-4">
+                    <div class="card border-0 shadow-sm p-4 h-100">
+                        <h6 class="fw-bold border-bottom pb-2 text-secondary mb-3">
+                            <i class="bi bi-sliders me-2 text-primary"></i>Report Engine Controls
+                        </h6>
+                        <form action="reports.php" method="GET" target="_blank">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Target Metric Scope</label>
+                                <select name="report_type" class="form-select form-select-sm fw-semibold" required>
+                                    <option value="volume_summary">Ticket Volume & Status Breakdown</option>
+                                    <option value="agent_performance">IT Staff Load & Performance Matrix</option>
+                                    <option value="critical_failures">Critical System Failures Log</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Filter Severity Level</label>
+                                <select name="filter_priority" class="form-select form-select-sm">
+                                    <option value="All">All Priorities</option>
+                                    <option value="Critical">Critical Only</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Reporting Window Start</label>
+                                <input type="date" name="start_date" class="form-control form-control-sm" value="<?php echo date('Y-m-01'); ?>">
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold">Reporting Window End</label>
+                                <input type="date" name="end_date" class="form-control form-control-sm" value="<?php echo date('Y-m-t'); ?>">
+                            </div>
+
+                            <div class="d-flex flex-column gap-2">
+                                <button type="submit" name="export" value="view" class="btn btn-outline-primary btn-sm fw-bold py-2">
+                                    <i class="bi bi-eye-fill me-1"></i> Render Dynamic Preview
+                                </button>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button type="submit" name="export" value="csv" class="btn btn-success btn-sm w-100 fw-bold py-2">
+                                            <i class="bi bi-filetype-csv me-1"></i> Export CSV
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button type="submit" name="export" value="pdf" class="btn btn-danger btn-sm w-100 fw-bold py-2">
+                                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Export PDF
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-8">
+                    <div class="card border-0 shadow-sm p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                            <h6 class="fw-bold text-secondary mb-0">
+                                <i class="bi bi-database-fill-gear me-2 text-info"></i>Pre-Compilation Summary Grid
+                            </h6>
+                            <span class="badge bg-light text-muted border font-monospace">System Live Buffer</span>
+                        </div>
+                        
+                        <p class="text-muted small">Below is a structural preview baseline showing how targeted data arrays compile inside the system framework:</p>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0 text-secondary" style="font-size:0.85rem;">
+                                <thead class="table-light small text-muted">
+                                    <tr>
+                                        <th>Metric Class</th>
+                                        <th>Registered Count</th>
+                                        <th>Proportional Allocation</th>
+                                        <th>Operational Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="fw-bold text-dark">Active Tickets Base</td>
+                                        <td class="font-monospace fw-bold"><?php echo $metrics['Total'] ?? 0; ?> Records</td>
+                                        <td>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-primary" style="width: 100%"></div>
+                                            </div>
+                                        </td>
+                                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small" style="font-size: 0.65rem;">Active Tracking</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold text-dark">Critical / High Load</td>
+                                        <td class="font-monospace text-danger fw-bold"><?php echo (($priorityStats['Critical'] ?? 0) + ($priorityStats['High'] ?? 0)); ?> Tickets</td>
+                                        <td>
+                                            <?php 
+                                                $totalT = $metrics['Total'] > 0 ? $metrics['Total'] : 1;
+                                                $critPct = ((($priorityStats['Critical'] ?? 0) + ($priorityStats['High'] ?? 0)) / $totalT) * 100;
+                                            ?>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-danger" style="width: <?php echo min(100, max(5, $critPct)); ?>%"></div>
+                                            </div>
+                                        </td>
+                                        <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill small" style="font-size: 0.65rem;">High Attention</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold text-dark">Resolved / Managed</td>
+                                        <td class="font-monospace text-success fw-bold"><?php echo $metrics['Resolved'] ?? 0; ?> Closed</td>
+                                        <td>
+                                            <?php $resPct = (($metrics['Resolved'] ?? 0) / $totalT) * 100; ?>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-success" style="width: <?php echo $resPct; ?>%"></div>
+                                            </div>
+                                        </td>
+                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small" style="font-size: 0.65rem;">Archived</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="bg-light border rounded p-3 mt-auto">
+                            <div class="d-flex gap-2 align-items-start small text-muted">
+                                <i class="bi bi-info-circle-fill text-primary mt-0.5"></i>
+                                <div>
+                                    <strong>Routing Hook Notification:</strong> Clicking export execution triggers standard processing against the database controller inside <code class="bg-white px-1 py-0.5 rounded border">reports.php</code> using the configurations assigned in the panel.
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
         <?php endif; ?>
 
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('edit_user')) {
-            const userTab = document.querySelector('#users-tab');
-            if (userTab) {
-                bootstrap.Tab.getOrCreateInstance(userTab).show();
-            }
-        }
-    });
-</script>
 </body>
 </html>
