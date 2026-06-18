@@ -1,0 +1,125 @@
+[2026-05-19 18:23:49] TO: user@company.com | SUBJECT: Ticket Status Shifted | DETAILS: Ticket #1 changed to: In Progress
+[2026-05-19 18:28:34] TO: admin@company.com | SUBJECT: New Ticket Created | DETAILS: Severity [Low]: xxsx
+[2026-05-19 18:28:51] TO: admin@company.com | SUBJECT: New Ticket Created | DETAILS: Severity [Low]: xsxs
+[2026-05-19 18:29:01] TO: user@company.com | SUBJECT: Ticket Claimed Notification | DETAILS: Ticket #2 was picked up by an agent.
+[2026-05-19 18:29:26] TO: user@company.com | SUBJECT: Ticket Claimed Notification | DETAILS: Ticket #1 was picked up by an agent.
+[2026-05-19 18:29:32] TO: user@company.com | SUBJECT: Ticket Status Shifted | DETAILS: Ticket #1 changed to: Resolved
+[2026-05-19 18:29:49] TO: admin@company.com | SUBJECT: New Ticket Created | DETAILS: Severity [High]: ddcdd
+[2026-05-19 18:30:04] TO: admin@company.com | SUBJECT: New Ticket Created | DETAILS: Severity [High]: io8o99
+[2026-05-19 18:30:13] TO: admin@company.com | SUBJECT: New Ticket Created | DETAILS: Severity [High]: ddcdd
+[2026-05-19 18:41:47] TO: user@company.com | SUBJECT: Ticket Status Shifted | DETAILS: Ticket #5 changed to: Closed
+[2026-06-03 18:54:54] TO: admin@company.com | SUBJECT: New Ticket Created | DETAILS: Severity [Medium]: zxzxzx - zxzxzx
+[2026-06-03 18:56:49] TO: admin@company.com | SUBJECT: New Ticket Created | DETAILS: Severity [Critical]: cdsd - sdsdsd
+[2026-06-03 18:58:13] TO: admin@company.com | SUBJECT: System Update - Ticket Purged | DETAILS: Ticket Data Record #27 was permanently deleted from the active operation storage grids.
+[2026-06-03 18:58:15] TO: admin@company.com | SUBJECT: System Update - Ticket Purged | DETAILS: Ticket Data Record #11 was permanently deleted from the active operation storage grids.
+[2026-06-03 18:58:32] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #22 status tracking changed to [Closed]
+[2026-06-03 19:00:01] TO: admin@company.com | SUBJECT: System Update - Ticket Claimed | DETAILS: Ticket #30 was successfully claimed by Agent ID: 11
+[2026-06-03 19:00:03] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #30 status tracking changed to [Resolved]
+[2026-06-03 19:01:13] TO: admin@company.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [Critical]: ccdcd - dcdcdcdc
+[2026-06-03 19:06:47] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #29 status tracking changed to [In Progress]
+[2026-06-03 19:06:49] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #31 status tracking changed to [In Progress]
+[2026-06-03 19:07:56] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #22 status tracking changed to [Resolved]
+[2026-06-03 19:07:58] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #31 status tracking changed to [Resolved]
+[2026-06-03 19:13:22] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #31 status mapping changed to [Closed]
+[2026-06-03 19:13:29] TO: admin@company.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [High]: ffg - ggtg
+[2026-06-03 22:47:53] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #32 status mapping changed to [Resolved]
+[2026-06-03 22:47:54] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #32 status mapping changed to [In Progress]
+[2026-06-03 22:48:26] TO: admin@company.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [Critical]: vfvvfv - vfvfvfv
+[2026-06-03 22:48:32] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #32 status mapping changed to [In Progress]
+[2026-06-03 22:56:17] [User ID: #1] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #31 status mapping changed to [Open]
+[2026-06-03 22:56:19] [User ID: #1] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #33 status mapping changed to [In Progress]
+[2026-06-03 22:56:24] [User ID: #1] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #31 status mapping changed to [In Progress]
+[2026-06-03 22:56:26] [User ID: #1] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #30 status mapping changed to [In Progress]
+[2026-06-03 22:56:45] [User ID: #2] TO: admin@company.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [Medium]: fvfvfv - vfvfv
+[2026-06-03 22:56:59] [User ID: #1] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #30 status mapping changed to [In Progress]
+[2026-06-03 22:57:01] [User ID: #1] TO: admin@company.com | SUBJECT: System Update - Ticket Purged | DETAILS: Ticket Data Record #22 permanently scrubbed from system operations storage grids.
+[2026-06-03 22:57:06] [User ID: #1] TO: admin@company.com | SUBJECT: System Update - Ticket Purged | DETAILS: Ticket Data Record #31 permanently scrubbed from system operations storage grids.
+[2026-06-03 22:57:08] [User ID: #1] TO: admin@company.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #33 forcefully routed to Agent ID: 1
+[2026-06-03 22:57:10] [User ID: #1] TO: admin@company.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #32 forcefully routed to Agent ID: 1
+[2026-06-03 22:59:18] [User ID: #11] TO: admin@company.com | SUBJECT: System Update - Ticket Claimed | DETAILS: Ticket #34 successfully claimed by Agent ID: 11
+[2026-06-03 22:59:35] [User ID: #11] TO: admin@company.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [Low]: iuilll - llilil
+[2026-06-03 23:07:15] [User ID: #1] TO: admin@company.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #32 forcefully routed to Agent ID: 1
+[2026-06-03 23:07:17] [User ID: #1] TO: admin@company.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #33 forcefully routed to Agent ID: 11
+[2026-06-03 23:07:40] [User ID: #11] TO: admin@company.com | SUBJECT: System Update - Ticket Claimed | DETAILS: Ticket #29 successfully claimed by Agent ID: 11
+[2026-06-03 23:07:42] [User ID: #11] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #30 status mapping changed to [Resolved]
+[2026-06-03 23:08:15] [User ID: #2] TO: admin@company.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [High]: fvfv - fvfv
+[2026-06-03 23:10:19] [User ID: #2] TO: admin@company.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #33 status mapping changed to [Closed]
+[2026-06-03 23:11:46] [User ID: #1] TO: admin@gmail.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #33 forcefully routed to Agent ID: 11
+[2026-06-03 23:11:48] [User ID: #1] TO: admin@gmail.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #33 forcefully routed to Agent ID: 1
+[2026-06-03 23:11:50] [User ID: #1] TO: admin@gmail.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #36 forcefully routed to Agent ID: 11
+[2026-06-03 23:12:08] [User ID: #11] TO: admin@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #34 status mapping changed to [Resolved]
+[2026-06-03 23:12:12] [User ID: #2] TO: admin@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #36 status mapping changed to [Closed]
+[2026-06-03 23:14:33] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #33 status mapping changed to [Resolved]
+[2026-06-03 23:15:02] [User ID: #2] TO: nimal@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #33 status mapping changed to [Closed]
+[2026-06-03 23:15:08] [User ID: #2] TO: nimal@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #33 status mapping changed to [Closed]
+[2026-06-03 23:15:16] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #36 status mapping changed to [Resolved]
+[2026-06-03 23:22:40] [User ID: #2] TO: nimal@gmail.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [Low]: ffvfv - vfvvfv
+[2026-06-03 23:23:06] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #29 status mapping changed to [Resolved]
+[2026-06-03 23:23:54] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #33 status mapping changed to [Resolved]
+[2026-06-03 23:23:58] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Ticket Purged | DETAILS: Ticket Data Record #37 permanently scrubbed from system operations storage grids.
+[2026-06-03 23:24:00] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Ticket Purged | DETAILS: Ticket Data Record #36 permanently scrubbed from system operations storage grids.
+[2026-06-03 23:24:02] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Ticket Purged | DETAILS: Ticket Data Record #33 permanently scrubbed from system operations storage grids.
+[2026-06-03 23:24:05] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Ticket Purged | DETAILS: Ticket Data Record #34 permanently scrubbed from system operations storage grids.
+[2026-06-03 23:24:08] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Ticket Purged | DETAILS: Ticket Data Record #34 permanently scrubbed from system operations storage grids.
+[2026-06-04 21:35:36] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #30 status mapping changed to [In Progress]
+[2026-06-04 21:38:55] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #30 status mapping changed to [In Progress]
+[2026-06-04 21:39:06] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #35 status mapping changed to [Resolved]
+[2026-06-04 21:43:07] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #35 status mapping changed to [Resolved]
+[2026-06-04 21:43:14] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [High]: cscsc - scscsc
+[2026-06-04 21:47:50] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #32 status mapping changed to [Closed]
+[2026-06-04 21:49:42] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #32 status mapping changed to [Closed]
+[2026-06-04 21:52:24] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #32 status mapping changed to [Closed]
+[2026-06-04 22:02:53] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #32 status mapping changed to [Closed]
+[2026-06-04 22:10:23] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #32 status mapping changed to [Closed]
+[2026-06-04 22:12:36] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #30 status mapping changed to [Closed]
+[2026-06-04 22:12:38] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Closed]
+[2026-06-04 22:12:41] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #29 status mapping changed to [Closed]
+[2026-06-04 22:12:44] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #35 status mapping changed to [Closed]
+[2026-06-04 22:13:30] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #35 status mapping changed to [Closed]
+[2026-06-04 22:23:31] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #35 status mapping changed to [Closed]
+[2026-06-04 22:37:52] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #35 status mapping changed to [Closed]
+[2026-06-04 22:38:02] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #30 forcefully routed to Agent ID: 1
+[2026-06-04 22:38:06] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #29 forcefully routed to Agent ID: 1
+[2026-06-04 22:38:08] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #35 forcefully routed to Agent ID: 1
+[2026-06-04 22:42:18] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #35 forcefully routed to Agent ID: 1
+[2026-06-04 22:45:03] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Administrative Reassignment | DETAILS: Ticket #35 forcefully routed to Agent ID: 1
+[2026-06-06 21:36:56] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Ticket Claimed | DETAILS: Ticket #38 successfully claimed by Agent ID: 11
+[2026-06-06 22:22:54] [User ID: #2] TO: nimal@gmail.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [Critical]: ffrgr - grgrgrg
+[2026-06-06 22:24:03] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Ticket Claimed | DETAILS: Ticket #39 successfully claimed by Agent ID: 11
+[2026-06-06 22:24:12] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #39 status mapping changed to [Resolved]
+[2026-06-06 22:31:54] [User ID: #2] TO: nimal@gmail.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [Low]: xssdsd - dsdsssssssssssssssssssssssssssssssssssssss
+[2026-06-06 22:33:01] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #39 status mapping changed to [Resolved]
+[2026-06-06 22:33:10] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Ticket Claimed | DETAILS: Ticket #40 successfully claimed by Agent ID: 11
+[2026-06-06 22:36:04] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #40 status mapping changed to [Resolved]
+[2026-06-06 22:37:57] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [Critical]: fffffffffffffff - ddddf
+[2026-06-06 22:38:18] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Ticket Claimed | DETAILS: Ticket #41 successfully claimed by Agent ID: 11
+[2026-06-06 22:45:17] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #41 status mapping changed to [Resolved]
+[2026-06-06 22:45:22] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Resolved]
+[2026-06-06 22:45:49] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #41 status mapping changed to [Resolved]
+[2026-06-06 22:45:52] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #30 status mapping changed to [Resolved]
+[2026-06-06 22:45:55] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #32 status mapping changed to [Resolved]
+[2026-06-06 22:45:58] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #29 status mapping changed to [Resolved]
+[2026-06-06 22:46:03] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #35 status mapping changed to [Resolved]
+[2026-06-06 22:46:15] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #35 status mapping changed to [Resolved]
+[2026-06-06 22:46:34] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #41 status mapping changed to [In Progress]
+[2026-06-06 22:46:43] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #40 status mapping changed to [In Progress]
+[2026-06-06 22:46:47] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #39 status mapping changed to [Closed]
+[2026-06-06 22:46:52] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #41 status mapping changed to [Open]
+[2026-06-06 22:46:53] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #39 status mapping changed to [In Progress]
+[2026-06-06 22:47:00] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Closed]
+[2026-06-06 22:48:13] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Resolved]
+[2026-06-06 22:48:46] [User ID: #1] TO: lahiru@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Resolved]
+[2026-06-06 22:52:27] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Resolved]
+[2026-06-06 22:55:33] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Resolved]
+[2026-06-06 23:46:24] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Resolved]
+[2026-06-06 23:47:07] [User ID: #2] TO: nimal@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #40 status mapping changed to [Closed]
+[2026-06-06 23:47:12] [User ID: #2] TO: nimal@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #39 status mapping changed to [Closed]
+[2026-06-06 23:47:14] [User ID: #2] TO: nimal@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #39 status mapping changed to [Closed]
+[2026-06-06 23:53:07] [User ID: #2] TO: nimal@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #39 status mapping changed to [Closed]
+[2026-06-07 00:01:17] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Resolved]
+[2026-06-07 00:02:28] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Resolved]
+[2026-06-07 00:03:38] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Resolved]
+[2026-06-07 00:04:05] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Resolved]
+[2026-06-07 00:11:33] [User ID: #2] TO: nimal@gmail.com | SUBJECT: System Update - New Ticket Created | DETAILS: Severity [Medium]: fvfvfv - vffv
+[2026-06-07 00:12:08] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Status Changed | DETAILS: Ticket #38 status mapping changed to [Resolved]
+[2026-06-07 00:12:09] [User ID: #11] TO: kasun@gmail.com | SUBJECT: System Update - Ticket Claimed | DETAILS: Ticket #42 successfully claimed by Agent ID: 11
