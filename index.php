@@ -23,6 +23,50 @@ $currentUserName = $_SESSION['user_name'];
 // Normalize casing string logic ('Admin', 'Agent', 'Requester') to prevent system mismatch
 $currentRole     = ucfirst(strtolower($_SESSION['user_role'] ?? 'Requester')); 
 
+// Capture UI runtime filtering parameters cleanly
+$filterStatus   = $_GET['filter_status'] ?? '';
+$filterPriority = $_GET['filter_priority'] ?? '';
+$filterAgent    = $_GET['filter_agent'] ?? '';
+
+// Catch report download actions before page layout compiles
+if ($currentRole === 'Admin' && isset($_GET['download_action'])) {
+    $downloadFormat = $_GET['download_action'];
+
+    // Fetch master queue and filter locally based on chosen metrics
+    $rawTickets = $ticketManager->getMasterQueue();
+    $filteredTickets = array_filter($rawTickets, function($t) use ($filterStatus, $filterPriority, $filterAgent) {
+        if (!empty($filterStatus) && $t['status'] !== $filterStatus) return false;
+        if (!empty($filterPriority) && $t['priority'] !== $filterPriority) return false;
+        if (!empty($filterAgent) && ($t['assigned_to'] ?? 0) != $filterAgent) return false;
+        return true;
+    });
+
+    if (ob_get_level()) ob_end_clean();
+
+    if ($downloadFormat === 'excel') {
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename=Support_Report_' . date('Ymd_His') . '.xls');
+        echo "<table border='1'>";
+        echo "<tr><th>ID</th><th>Title</th><th>Priority</th><th>Status</th><th>By</th><th>Assigned Agent</th></tr>";
+        foreach ($filteredTickets as $t) {
+            echo "<tr><td>#{$t['id']}</td><td>" . htmlspecialchars($t['title']) . "</td><td>{$t['priority']}</td><td>{$t['status']}</td><td>" . htmlspecialchars($t['creator_name'] ?? 'System') . "</td><td>" . htmlspecialchars($t['agent_name'] ?? 'Unassigned') . "</td></tr>";
+        }
+        echo "</table>";
+        exit;
+    } 
+    elseif ($downloadFormat === 'pdf') {
+        header('Content-Type: text/html; charset=utf-8');
+        echo "<html><head><style>body{font-family:sans-serif;} table{width:100%; border-collapse:collapse;} th,td{border:1px solid #ddd; padding:8px; text-align:left;} th{background:#f2f2f2;}</style></head><body onload='window.print()'>";
+        echo "<h2>IT Helpdesk Operations Report</h2><p>Generated on: " . date('Y-m-d H:i:s') . "</p>";
+        echo "<table><thead><tr><th>ID</th><th>Title</th><th>Priority</th><th>Status</th><th>Agent</th></tr></thead><tbody>";
+        foreach ($filteredTickets as $t) {
+            echo "<tr><td>#{$t['id']}</td><td>" . htmlspecialchars($t['title']) . "</td><td>{$t['priority']}</td><td>{$t['status']}</td><td>" . htmlspecialchars($t['agent_name'] ?? 'Unassigned') . "</td></tr>";
+        }
+        echo "</tbody></table></body></html>";
+        exit;
+    }
+}
+
 // Form Routing Handlers
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -54,11 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!empty($title) && !empty($description)) {
             $ticketManager->createTicket($title, $description, $priority, $currentUserId, $uploadedFilePath);
-            
-            // Store the message inside the session so it survives the redirect
             $_SESSION['operational_message'] = "<div class='alert alert-success alert-dismissible fade show shadow-sm' role='alert'><i class='bi bi-check-circle-fill me-2'></i>Support ticket opened and queued inside operations grid.<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
-            
-            // REDIRECT back to the same page to clear the POST data buffer
             header("Location: index.php");
             exit;
         }
@@ -67,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Requester Action: Cancel Own Ticket
     if ($action === 'requester_cancel') {
         $ticketId = (int)($_POST['ticket_id'] ?? 0);
-        // FIXED: Added current user ID to track who canceled it
         $ticketManager->updateStatus($ticketId, 'Closed', $currentUserId);
         $message = "<div class='alert alert-warning alert-dismissible fade show shadow-sm' role='alert'><i class='bi bi-info-circle-fill me-2'></i>Ticket #{$ticketId} has been canceled by requester.<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
     }
@@ -120,20 +159,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update_status' && ($currentRole === 'Admin' || $currentRole === 'Agent')) {
         $ticketId = (int)($_POST['ticket_id'] ?? 0);
         $newStatus = $_POST['status'] ?? '';
-        // FIXED: Added current user ID to satisfy logging arguments mapping criteria
         $ticketManager->updateStatus($ticketId, $newStatus, $currentUserId);
     }
 
     if ($action === 'admin_assign' && $currentRole === 'Admin') {
         $ticketId = (int)($_POST['ticket_id'] ?? 0);
         $agentId = (int)($_POST['agent_id'] ?? 0);
-        // FIXED: Added current admin user ID executing the reassignment action
         $ticketManager->forceAssignTicket($ticketId, $agentId, $currentUserId);
     }
 
     if ($action === 'admin_delete' && $currentRole === 'Admin') {
         $ticketId = (int)($_POST['ticket_id'] ?? 0);
-        // FIXED: Added current admin user ID authorized for records scrubbing execution
         $ticketManager->deleteTicket($ticketId, $currentUserId);
     }
 }
@@ -149,6 +185,14 @@ $tickets = $ticketManager->getMasterQueue();
 $agentsList = $ticketManager->getAllAgents();
 $userRoster = $adminManager->getAllUsers();
 
+// Generate filtered dataset for preview window
+$reportTickets = array_filter($tickets, function($t) use ($filterStatus, $filterPriority, $filterAgent) {
+    if (!empty($filterStatus) && $t['status'] !== $filterStatus) return false;
+    if (!empty($filterPriority) && $t['priority'] !== $filterPriority) return false;
+    if (!empty($filterAgent) && ($t['assigned_to'] ?? 0) != $filterAgent) return false;
+    return true;
+});
+
 // Aggregate Report Metrics Data Arrays
 $metrics = $ticketManager->getSummaryMetrics();
 $priorityStats = $ticketManager->getPriorityMetrics();
@@ -160,6 +204,18 @@ $priorityBadges = [
     'Medium'   => 'bg-info text-white', 
     'Low'      => 'bg-secondary text-white'
 ];
+
+// Determine explicitly which tab should be active stateful
+$activeTab = 'queue'; // Default fallback
+if ($currentRole === 'Admin') {
+    if (isset($_GET['edit_user'])) {
+        $activeTab = 'users';
+    } elseif (!empty($filterStatus) || !empty($filterPriority) || !empty($filterAgent) || isset($_GET['download_action'])) {
+        $activeTab = 'report-generate';
+    } elseif (isset($_GET['tab']) && $_GET['tab'] === 'reports') {
+        $activeTab = 'reports';
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -177,7 +233,7 @@ $priorityBadges = [
     <header class="d-flex flex-wrap justify-content-between align-items-center p-3 mb-4 <?php echo $currentRole === 'Admin' ? 'bg-dark text-white' : 'bg-white text-dark'; ?> rounded shadow-sm">
         <div class="d-flex align-items-center gap-2">
             <i class="bi <?php echo $currentRole === 'Admin' ? 'bi-shield-lock-fill text-warning' : 'bi-shield-fill-check text-primary'; ?> fs-3"></i>
-            <span class="fs-4 fw-bold"><?php echo $currentRole === 'Admin' ? 'Central Administration Area' : 'IT Helpdesk Portal'; ?></span>
+            <span class="fs-4 fw-bold"><?php echo $currentRole === 'Admin' ? 'Central Administration Panal' : 'IT Helpdesk Portal'; ?></span>
         </div>
         <div class="d-flex align-items-center gap-3">
             <span class="small opacity-75">Signed in as: <strong><?php echo htmlspecialchars($currentUserName); ?></strong></span>
@@ -190,24 +246,24 @@ $priorityBadges = [
 
     <ul class="nav nav-pills mb-4 gap-2 bg-white p-2 rounded shadow-sm" id="dashboardTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active fw-bold" id="queue-tab" data-bs-toggle="tab" data-bs-target="#queue-pane" type="button" role="tab"><i class="bi bi-list-task me-2"></i>Active Operations Grid</button>
+            <button class="nav-link fw-bold <?php echo $activeTab === 'queue' ? 'active' : ''; ?>" id="queue-tab" data-bs-toggle="tab" data-bs-target="#queue-pane" type="button" role="tab"><i class="bi bi-list-task me-2"></i>Active Operations Grid</button>
         </li>
         <?php if ($currentRole === 'Admin'): ?>
             <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold text-success" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports-pane" type="button" role="tab"><i class="bi bi-graph-up-arrow me-2"></i>Reports & Metrics</button>
+                <button class="nav-link fw-bold text-success <?php echo $activeTab === 'reports' ? 'active' : ''; ?>" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports-pane" type="button" role="tab"><i class="bi bi-graph-up-arrow me-2"></i>Reports & Metrics</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold text-info <?php echo isset($_GET['edit_user']) ? 'active' : ''; ?>" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-pane" type="button" role="tab"><i class="bi bi-people-fill me-2"></i>User Access Management</button>
+                <button class="nav-link fw-bold text-info <?php echo $activeTab === 'users' ? 'active' : ''; ?>" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-pane" type="button" role="tab"><i class="bi bi-people-fill me-2"></i>User Access Management</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold text-primary" id="report-generate-tab" data-bs-toggle="tab" data-bs-target="#report-generate-pane" type="button" role="tab"><i class="bi bi-file-earmark-bar-graph-fill me-2"></i>Report Generate Area</button>
+                <button class="nav-link fw-bold text-primary <?php echo $activeTab === 'report-generate' ? 'active' : ''; ?>" id="report-generate-tab" data-bs-toggle="tab" data-bs-target="#report-generate-pane" type="button" role="tab"><i class="bi bi-file-earmark-bar-graph-fill me-2"></i>Report Generate Area</button>
             </li>
         <?php endif; ?>
     </ul>
 
     <div class="tab-content" id="dashboardTabsContent">
         
-        <div class="tab-pane fade <?php echo !isset($_GET['edit_user']) ? 'show active' : ''; ?>" id="queue-pane" role="tabpanel" aria-labelledby="queue-tab">
+        <div class="tab-pane fade <?php echo $activeTab === 'queue' ? 'show active' : ''; ?>" id="queue-pane" role="tabpanel" aria-labelledby="queue-tab">
             <div class="row g-4">
                 <div class="col-12 col-lg-4">
                     <div class="card border-0 shadow-sm">
@@ -219,9 +275,12 @@ $priorityBadges = [
                                 <div class="mb-3"><label class="form-label small fw-bold">Troubleshooting Details</label><textarea name="description" rows="3" class="form-control" required></textarea></div>
                                 <div class="mb-3"><label class="form-label small fw-bold">Attachment</label><input type="file" name="screenshot" class="form-control form-control-sm"></div>
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold">Severity</label>
+                                    <label class="form-label small fw-bold">Priority</label>
                                     <select name="priority" class="form-select form-select-sm">
-                                        <option value="Low">Low</option><option value="Medium" selected>Medium</option><option value="High">High</option><option value="Critical">Critical</option>
+                                        <option value="Low">Low</option>
+                                        <option value="Medium" selected>Medium</option>
+                                        <option value="High">High</option>
+                                        <option value="Critical">Critical</option>
                                     </select>
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100 fw-bold">Submit Ticket</button>
@@ -264,7 +323,6 @@ $priorityBadges = [
                                                     <span class="badge bg-light text-dark border"><?php echo $ticket['status']; ?></span>
                                                 <?php endif; ?>
                                             </td>
-                                            
                                             <td class="pe-3 text-end">
                                                 <?php if ($currentRole === 'Admin'): ?>
                                                     <div class="d-flex flex-column gap-1 align-items-end">
@@ -317,8 +375,6 @@ $priorityBadges = [
                                                             <span class="badge bg-light text-muted border py-1 px-2 fw-normal" style="font-size:0.75rem;">ReadOnly Track</span>
                                                         <?php endif; ?>
                                                     </div>
-                                                <?php else: ?>
-                                                    <span class="text-muted small opacity-50">-</span>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
@@ -332,30 +388,30 @@ $priorityBadges = [
         </div>
 
         <?php if ($currentRole === 'Admin'): ?>
-        <div class="tab-pane fade" id="reports-pane" role="tabpanel" aria-labelledby="reports-tab">
+        <div class="tab-pane fade <?php echo $activeTab === 'reports' ? 'show active' : ''; ?>" id="reports-pane" role="tabpanel" aria-labelledby="reports-tab">
             <div class="row g-3 mb-4">
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm bg-primary text-white p-3 rounded">
                         <div class="small fw-bold opacity-75">Total Queue Base</div>
-                        <div class="fs-2 fw-black font-monospace"><?php echo $metrics['Total']; ?></div>
+                        <div class="fs-2 fw-black font-monospace"><?php echo $metrics['Total'] ?? 0; ?></div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm bg-warning text-dark p-3 rounded">
                         <div class="small fw-bold opacity-75">Active Progress</div>
-                        <div class="fs-2 fw-black font-monospace"><?php echo $metrics['In Progress'] + $metrics['Assigned']; ?></div>
+                        <div class="fs-2 fw-black font-monospace"><?php echo ($metrics['In Progress'] ?? 0) + ($metrics['Assigned'] ?? 0); ?></div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm bg-success text-white p-3 rounded">
                         <div class="small fw-bold opacity-75">Resolved Tickets</div>
-                        <div class="fs-2 fw-black font-monospace"><?php echo $metrics['Resolved']; ?></div>
+                        <div class="fs-2 fw-black font-monospace"><?php echo $metrics['Resolved'] ?? 0; ?></div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm bg-secondary text-white p-3 rounded">
                         <div class="small fw-bold opacity-75">Closed Archive</div>
-                        <div class="fs-2 fw-black font-monospace"><?php echo $metrics['Closed']; ?></div>
+                        <div class="fs-2 fw-black font-monospace"><?php echo $metrics['Closed'] ?? 0; ?></div>
                     </div>
                 </div>
             </div>
@@ -400,7 +456,7 @@ $priorityBadges = [
             </div>
         </div>
 
-        <div class="tab-pane fade <?php echo isset($_GET['edit_user']) ? 'show active' : ''; ?>" id="users-pane" role="tabpanel" aria-labelledby="users-tab">
+        <div class="tab-pane fade <?php echo $activeTab === 'users' ? 'show active' : ''; ?>" id="users-pane" role="tabpanel" aria-labelledby="users-tab">
             <div class="row g-4">
                 <div class="col-12 col-lg-4">
                     <div class="card border-0 shadow-sm p-4">
@@ -413,70 +469,63 @@ $priorityBadges = [
                             <?php if ($editUser): ?>
                                 <input type="hidden" name="user_id" value="<?php echo $editUser['id']; ?>">
                             <?php endif; ?>
-                            
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Full Name</label>
-                                <input type="text" name="new_name" class="form-control form-control-sm text-capitalize" required placeholder="e.g. Ruwan Perera" value="<?php echo $editUser ? htmlspecialchars($editUser['name']) : ''; ?>">
+                                <input type="text" name="new_name" class="form-control form-control-sm" required value="<?php echo $editUser ? htmlspecialchars($editUser['name']) : ''; ?>">
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small fw-bold">Corporate Email Address</label>
-                                <input type="email" name="new_email" class="form-control form-control-sm" required placeholder="name@baengineering.com" value="<?php echo $editUser ? htmlspecialchars($editUser['email']) : ''; ?>">
+                                <label class="form-label small fw-bold">Email Address</label>
+                                <input type="email" name="new_email" class="form-control form-control-sm" required value="<?php echo $editUser ? htmlspecialchars($editUser['email']) : ''; ?>">
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small fw-bold"><?php echo $editUser ? 'Security Password Key (Leave blank to keep current)' : 'Temporary Password Base'; ?></label>
-                                <input type="password" name="new_password" class="form-control form-control-sm" <?php echo $editUser ? '' : 'required'; ?> minlength="6">
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label small fw-bold">System Clearances Access Assignment</label>
-                                <select name="new_role" class="form-select form-select-sm fw-semibold">
-                                    <option value="Requester" <?php echo ($editUser && $editUser['role'] === 'Requester') ? 'selected' : ''; ?>>Requester (Standard Employee / Client)</option>
-                                    <option value="Agent" <?php echo ($editUser && $editUser['role'] === 'Agent') ? 'selected' : ''; ?>>Agent (IT Technical Support Staff)</option>
-                                    <option value="Admin" <?php echo ($editUser && $editUser['role'] === 'Admin') ? 'selected' : ''; ?>>Admin (Full Operations Root Executive)</option>
+                                <label class="form-label small fw-bold">System Privilege Role</label>
+                                <select name="new_role" class="form-select form-select-sm">
+                                    <option value="Requester" <?php echo ($editUser && $editUser['role'] === 'Requester') ? 'selected' : ''; ?>>Requester (Employee)</option>
+                                    <option value="Agent" <?php echo ($editUser && $editUser['role'] === 'Agent') ? 'selected' : ''; ?>>Operations Agent (IT Support)</option>
+                                    <option value="Admin" <?php echo ($editUser && $editUser['role'] === 'Admin') ? 'selected' : ''; ?>>System Administrator</option>
                                 </select>
                             </div>
-                            
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn <?php echo $editUser ? 'btn-warning text-dark' : 'btn-success'; ?> btn-sm flex-grow-1 fw-bold shadow-sm py-2">
-                                    <i class="bi <?php echo $editUser ? 'bi-floppy-fill' : 'bi-shield-plus'; ?> me-1"></i>
-                                    <?php echo $editUser ? 'Save Updates' : 'Commit & Provision'; ?>
-                                </button>
-                                <?php if ($editUser): ?>
-                                    <a href="index.php" class="btn btn-sm btn-outline-secondary py-2 px-3 fw-bold">Cancel</a>
-                                <?php endif; ?>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Account Password <?php echo $editUser ? '(Leave blank to retain)' : ''; ?></label>
+                                <input type="password" name="new_password" class="form-control form-control-sm" <?php echo $editUser ? '' : 'required'; ?>>
                             </div>
+                            <button type="submit" class="btn btn-sm <?php echo $editUser ? 'btn-warning text-dark' : 'btn-success'; ?> w-100 fw-bold">
+                                <?php echo $editUser ? 'Apply Matrix Updates' : 'Provision Secure Entry'; ?>
+                            </button>
+                            <?php if ($editUser): ?>
+                                <a href="index.php" class="btn btn-sm btn-link text-secondary w-100 text-center mt-2 small text-decoration-none">Cancel Edit</a>
+                            <?php endif; ?>
                         </form>
                     </div>
                 </div>
-
                 <div class="col-12 col-lg-8">
-                    <div class="card border-0 shadow-sm">
+                    <div class="card border-0 shadow-sm p-3">
                         <div class="table-responsive">
-                            <table class="table align-middle mb-0">
-                                <thead class="table-light small">
-                                    <tr><th class="ps-3">Account Profile</th><th>Identity Contact</th><th>Assigned Authorization</th><th class="pe-3 text-end">Control Panel</th></tr>
+                            <table class="table table-sm align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr><th>UID</th><th>System User</th><th>Assigned Privileges</th><th class="text-end">Actions</th></tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($userRoster as $rosterUser): ?>
+                                    <?php foreach ($userRoster as $usr): ?>
                                         <tr>
-                                            <td class="ps-3 fw-bold text-dark text-capitalize"><?php echo htmlspecialchars($rosterUser['name']); ?></td>
-                                            <td class="font-monospace small text-secondary"><?php echo htmlspecialchars($rosterUser['email']); ?></td>
+                                            <td class="font-monospace text-muted small">#<?php echo $usr['id']; ?></td>
                                             <td>
-                                                <span class="badge <?php echo $rosterUser['role'] === 'Admin' ? 'bg-warning text-dark' : ($rosterUser['role'] === 'Agent' ? 'bg-primary' : 'bg-light text-muted border'); ?>">
-                                                    <?php echo $rosterUser['role']; ?>
+                                                <div class="fw-bold small"><?php echo htmlspecialchars($usr['name']); ?></div>
+                                                <div class="text-muted" style="font-size:0.75rem;"><?php echo htmlspecialchars($usr['email']); ?></div>
+                                            </td>
+                                            <td>
+                                                <span class="badge <?php echo $usr['role'] === 'Admin' ? 'bg-danger-subtle text-danger' : ($usr['role'] === 'Agent' ? 'bg-info-subtle text-info' : 'bg-light text-secondary'); ?> border px-2">
+                                                    <?php echo $usr['role']; ?>
                                                 </span>
                                             </td>
-                                            <td class="pe-3 text-end">
-                                                <div class="d-flex gap-2 justify-content-end">
-                                                    <a href="index.php?edit_user=<?php echo $rosterUser['id']; ?>#users-pane" class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold" style="font-size:0.75rem;"><i class="bi bi-pencil-square"></i> Modify</a>
-                                                    <?php if ($rosterUser['id'] !== $currentUserId): ?>
-                                                        <form action="index.php" method="POST" onsubmit="return confirm('Revoke user authorization permanently?');" class="d-inline">
-                                                            <input type="hidden" name="action" value="admin_delete_user"><input type="hidden" name="user_id" value="<?php echo $rosterUser['id']; ?>">
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-trash3"></i> Revoke</button>
-                                                        </form>
-                                                    <?php else: ?>
-                                                        <span class="badge bg-dark-subtle text-dark border px-2 py-1 small opacity-75" style="font-size:0.65rem;">Self (Locked)</span>
-                                                    <?php endif; ?>
-                                                </div>
+                                            <td class="text-end">
+                                                <a href="index.php?edit_user=<?php echo $usr['id']; ?>" class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold" style="font-size:0.75rem;"><i class="bi bi-pencil-square"></i> Modify</a>
+                                                <?php if ($usr['id'] !== $currentUserId): ?>
+                                                    <form action="index.php" method="POST" class="d-inline" onsubmit="return confirm('Revoke account permissions forever?');">
+                                                        <input type="hidden" name="action" value="admin_delete_user"><input type="hidden" name="user_id" value="<?php echo $usr['id']; ?>">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-bold" style="font-size:0.7rem;"><i class="bi bi-trash"></i> Drop</button>
+                                                    </form>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -488,139 +537,79 @@ $priorityBadges = [
             </div>
         </div>
 
-        <div class="tab-pane fade" id="report-generate-pane" role="tabpanel" aria-labelledby="report-generate-tab">
-            <div class="row g-4">
-                
-                <div class="col-12 col-lg-4">
-                    <div class="card border-0 shadow-sm p-4 h-100">
-                        <h6 class="fw-bold border-bottom pb-2 text-secondary mb-3">
-                            <i class="bi bi-sliders me-2 text-primary"></i>Report Engine Controls
-                        </h6>
-                        <form action="reports.php" method="GET" target="_blank">
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Target Metric Scope</label>
-                                <select name="report_type" class="form-select form-select-sm fw-semibold" required>
-                                    <option value="volume_summary">Ticket Volume & Status Breakdown</option>
-                                    <option value="agent_performance">IT Staff Load & Performance Matrix</option>
-                                    <option value="critical_failures">Critical System Failures Log</option>
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Filter Severity Level</label>
-                                <select name="filter_priority" class="form-select form-select-sm">
-                                    <option value="All">All Priorities</option>
-                                    <option value="Critical">Critical Only</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                </select>
-                            </div>
+        <div class="tab-pane fade <?php echo $activeTab === 'report-generate' ? 'show active' : ''; ?>" id="report-generate-pane" role="tabpanel" aria-labelledby="report-generate-tab">
+            <div class="card border-0 shadow-sm p-4 mb-4">
+                <h5 class="fw-bold text-secondary mb-3"><i class="bi bi-funnel-fill text-primary me-2"></i>Data Filtering Engine</h5>
+                <form method="GET" action="index.php" class="row g-3 align-items-end">
+                    <?php if (isset($_GET['edit_user'])): ?>
+                        <input type="hidden" name="edit_user" value="<?php echo (int)$_GET['edit_user']; ?>">
+                    <?php endif; ?>
+                    <div class="col-12 col-sm-3">
+                        <label class="form-label small fw-bold text-muted">Status State</label>
+                        <select name="filter_status" class="form-select form-select-sm">
+                            <option value="">-- View All Statuses --</option>
+                            <option value="Open" <?php echo $filterStatus === 'Open' ? 'selected' : ''; ?>>Open</option>
+                            <option value="In Progress" <?php echo $filterStatus === 'In Progress' ? 'selected' : ''; ?>>In Progress</option>
+                            <option value="Resolved" <?php echo $filterStatus === 'Resolved' ? 'selected' : ''; ?>>Resolved</option>
+                            <option value="Closed" <?php echo $filterStatus === 'Closed' ? 'selected' : ''; ?>>Closed</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-3">
+                        <label class="form-label small fw-bold text-muted">Ticket Severity</label>
+                        <select name="filter_priority" class="form-select form-select-sm">
+                            <option value="">-- View All Severities --</option>
+                            <option value="Low" <?php echo $filterPriority === 'Low' ? 'selected' : ''; ?>>Low</option>
+                            <option value="Medium" <?php echo $filterPriority === 'Medium' ? 'selected' : ''; ?>>Medium</option>
+                            <option value="High" <?php echo $filterPriority === 'High' ? 'selected' : ''; ?>>High</option>
+                            <option value="Critical" <?php echo $filterPriority === 'Critical' ? 'selected' : ''; ?>>Critical</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-3">
+                        <label class="form-label small fw-bold text-muted">Assigned Specialist</label>
+                        <select name="filter_agent" class="form-select form-select-sm">
+                            <option value="">-- View All Agents --</option>
+                            <?php foreach ($agentsList as $ag): ?>
+                                <option value="<?php echo $ag['id']; ?>" <?php echo $filterAgent == $ag['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($ag['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-sm btn-primary flex-grow-1 fw-bold"><i class="bi bi-search me-1"></i> Filter View</button>
+                        <a href="index.php" class="btn btn-sm btn-outline-secondary fw-semibold"><i class="bi bi-arrow-counterclockwise"></i></a>
+                    </div>
+                </form>
+            </div>
 
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Reporting Window Start</label>
-                                <input type="date" name="start_date" class="form-control form-control-sm" value="<?php echo date('Y-m-01'); ?>">
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label small fw-bold">Reporting Window End</label>
-                                <input type="date" name="end_date" class="form-control form-control-sm" value="<?php echo date('Y-m-t'); ?>">
-                            </div>
-
-                            <div class="d-flex flex-column gap-2">
-                                <button type="submit" name="export" value="view" class="btn btn-outline-primary btn-sm fw-bold py-2">
-                                    <i class="bi bi-eye-fill me-1"></i> Render Dynamic Preview
-                                </button>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <button type="submit" name="export" value="csv" class="btn btn-success btn-sm w-100 fw-bold py-2">
-                                            <i class="bi bi-filetype-csv me-1"></i> Export CSV
-                                        </button>
-                                    </div>
-                                    <div class="col-6">
-                                        <button type="submit" name="export" value="pdf" class="btn btn-danger btn-sm w-100 fw-bold py-2">
-                                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Export PDF
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
+            <div class="card border-0 shadow-sm p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+                    <span class="small text-muted">Filtered Yield Counter: <strong><?php echo count($reportTickets); ?></strong> matching records entries found.</span>
+                    <div class="btn-group">
+                        <a href="index.php?download_action=excel&filter_status=<?php echo urlencode($filterStatus); ?>&filter_priority=<?php echo urlencode($filterPriority); ?>&filter_agent=<?php echo urlencode($filterAgent); ?>" class="btn btn-sm btn-outline-success fw-bold"><i class="bi bi-file-earmark-excel me-1"></i> Export Excel</a>
+                        <a href="index.php?download_action=pdf&filter_status=<?php echo urlencode($filterStatus); ?>&filter_priority=<?php echo urlencode($filterPriority); ?>&filter_agent=<?php echo urlencode($filterAgent); ?>" target="_blank" class="btn btn-sm btn-outline-danger fw-bold"><i class="bi bi-file-earmark-pdf me-1"></i> Print PDF</a>
                     </div>
                 </div>
-
-                <div class="col-12 col-lg-8">
-                    <div class="card border-0 shadow-sm p-4 h-100">
-                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                            <h6 class="fw-bold text-secondary mb-0">
-                                <i class="bi bi-database-fill-gear me-2 text-info"></i>Pre-Compilation Summary Grid
-                            </h6>
-                            <span class="badge bg-light text-muted border font-monospace">System Live Buffer</span>
-                        </div>
-                        
-                        <p class="text-muted small">Below is a structural preview baseline showing how targeted data arrays compile inside the system framework:</p>
-                        
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-0 text-secondary" style="font-size:0.85rem;">
-                                <thead class="table-light small text-muted">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0 text-start font-monospace small">
+                        <thead class="table-light">
+                            <tr><th>ID</th><th>Issue Title Summary</th><th>Priority</th><th>Current Status</th><th>Handler Agent</th></tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($reportTickets)): ?>
+                                <tr><td colspan="5" class="text-center text-muted py-4">No matching active records match current dashboard metric filter settings.</td></tr>
+                            <?php else: ?>
+                                <?php foreach ($reportTickets as $rt): ?>
                                     <tr>
-                                        <th>Metric Class</th>
-                                        <th>Registered Count</th>
-                                        <th>Proportional Allocation</th>
-                                        <th>Operational Status</th>
+                                        <td>#<?php echo $rt['id']; ?></td>
+                                        <td class="text-dark fw-bold"><?php echo htmlspecialchars($rt['title']); ?></td>
+                                        <td><?php echo $rt['priority']; ?></td>
+                                        <td><span class="badge border bg-white text-dark"><?php echo $rt['status']; ?></span></td>
+                                        <td><?php echo htmlspecialchars($rt['agent_name'] ?? 'Unassigned'); ?></td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="fw-bold text-dark">Active Tickets Base</td>
-                                        <td class="font-monospace fw-bold"><?php echo $metrics['Total'] ?? 0; ?> Records</td>
-                                        <td>
-                                            <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar bg-primary" style="width: 100%"></div>
-                                            </div>
-                                        </td>
-                                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small" style="font-size: 0.65rem;">Active Tracking</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="fw-bold text-dark">Critical / High Load</td>
-                                        <td class="font-monospace text-danger fw-bold"><?php echo (($priorityStats['Critical'] ?? 0) + ($priorityStats['High'] ?? 0)); ?> Tickets</td>
-                                        <td>
-                                            <?php 
-                                                $totalT = $metrics['Total'] > 0 ? $metrics['Total'] : 1;
-                                                $critPct = ((($priorityStats['Critical'] ?? 0) + ($priorityStats['High'] ?? 0)) / $totalT) * 100;
-                                            ?>
-                                            <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar bg-danger" style="width: <?php echo min(100, max(5, $critPct)); ?>%"></div>
-                                            </div>
-                                        </td>
-                                        <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill small" style="font-size: 0.65rem;">High Attention</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="fw-bold text-dark">Resolved / Managed</td>
-                                        <td class="font-monospace text-success fw-bold"><?php echo $metrics['Resolved'] ?? 0; ?> Closed</td>
-                                        <td>
-                                            <?php $resPct = (($metrics['Resolved'] ?? 0) / $totalT) * 100; ?>
-                                            <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar bg-success" style="width: <?php echo $resPct; ?>%"></div>
-                                            </div>
-                                        </td>
-                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small" style="font-size: 0.65rem;">Archived</span></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="bg-light border rounded p-3 mt-auto">
-                            <div class="d-flex gap-2 align-items-start small text-muted">
-                                <i class="bi bi-info-circle-fill text-primary mt-0.5"></i>
-                                <div>
-                                    <strong>Routing Hook Notification:</strong> Clicking export execution triggers standard processing against the database controller inside <code class="bg-white px-1 py-0.5 rounded border">reports.php</code> using the configurations assigned in the panel.
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
-
             </div>
         </div>
         <?php endif; ?>
