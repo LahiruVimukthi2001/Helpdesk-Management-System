@@ -1,3 +1,53 @@
+<?php
+session_start();
+require_once 'db.php';
+
+if (isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit;
+}
+
+$error = '';
+$success = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name     = trim($_POST['name'] ?? '');
+    $email    = filter_var(trim($_POST['email'] ?? ''), FILTER_VALIDATE_EMAIL);
+    $role     = trim($_POST['role'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if (!empty($name) && $email && !empty($role) && !empty($password)) {
+        
+        $checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
+        $checkStmt->execute(['email' => $email]);
+        
+        if ($checkStmt->fetch()) {
+            $error = "This email address is already registered to a system profile.";
+        } else {
+            $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+
+            // FIXED: Now inserting specifically into the 'password_hash' table column
+            $insertStmt = $pdo->prepare("INSERT INTO users (name, email, role, password_hash) VALUES (:name, :email, :role, :password_hash)");
+            $result = $insertStmt->execute([
+                'name'          => $name,
+                'email'         => $email,
+                'role'          => $role, 
+                'password_hash' => $hashedPassword
+            ]);
+
+            if ($result) {
+                $success = "Account created successfully! You can now log in.";
+                $_POST = array(); 
+            } else {
+                $error = "An error occurred while creating your account. Please try again.";
+            }
+        }
+    } else {
+        $error = "Please provide valid information inside all registration fields.";
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -125,6 +175,22 @@
     </div>
 </div>
 
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const togglePassword = document.querySelector('#togglePassword');
+        const passwordInput = document.querySelector('#passwordInput');
+        const toggleIcon = document.querySelector('#toggleIcon');
 
+        if (togglePassword && passwordInput && toggleIcon) {
+            togglePassword.addEventListener('click', function () {
+                const isPasswordType = passwordInput.getAttribute('type') === 'password';
+                passwordInput.setAttribute('type', isPasswordType ? 'text' : 'password');
+                
+                toggleIcon.classList.toggle('bi-eye', !isPasswordType);
+                toggleIcon.classList.toggle('bi-eye-slash', isPasswordType);
+            });
+        }
+    });
+</script>
 </body>
 </html>
