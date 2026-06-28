@@ -73,6 +73,135 @@ class TicketManager {
         }
     }
 
-    
+    public function createTicket($title, $description, $priority, $createdBy = null) {
+        $createdBy = $createdBy ?? ($_SESSION['user_id'] ?? null);
+
+        $sql = "INSERT INTO tickets (title, description, priority, created_by) 
+                VALUES (:title, :description, :priority, :created_by)";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $success = $stmt->execute([
+            'title' => htmlspecialchars($title),
+            'description' => htmlspecialchars($description),
+            'priority' => $priority,
+            'created_by' => $createdBy
+        ]);
+
+        if ($success) {
+            $cleanDetails = str_replace(["\r", "\n"], " ", $description);
+            $subject = "System Update - New Ticket Created";
+            $details = "Severity [{$priority}]: " . htmlspecialchars($title) . " - " . htmlspecialchars($cleanDetails);
+            
+            $this->writeToLog($createdBy, $subject, 'Success', $details);
+        }
+
+        return $success;
+    }
+
+    public function claimTicket($ticketId, $agentId = null) {
+        $agentId = $agentId ?? ($_SESSION['user_id'] ?? null);
+
+        $sql = "UPDATE tickets SET assigned_to = :agent_id, status = 'Assigned' WHERE id = :ticket_id AND assigned_to IS NULL";
+        $stmt = $this->pdo->prepare($sql);
+        $success = $stmt->execute(['agent_id' => $agentId, 'ticket_id' => $ticketId]);
+
+        if ($success && $stmt->rowCount() > 0) {
+            $this->writeToLog($agentId, "System Update - Ticket Claimed", 'Success', "Ticket #{$ticketId} successfully claimed by Agent ID: {$agentId}");
+        }
+
+        return $success;
+    }
+
+    public function updateStatus($ticketId, $status, $modifiedBy = null) {
+        $modifiedBy = $modifiedBy ?? ($_SESSION['user_id'] ?? null);
+
+        $sql = "UPDATE tickets SET status = :status WHERE id = :ticket_id";
+        $stmt = $this->pdo->prepare($sql);
+        $success = $stmt->execute(['status' => $status, 'ticket_id' => $ticketId]);
+
+        if ($success) {
+            $this->writeToLog($modifiedBy, "System Update - Status Changed", 'Success', "Ticket #{$ticketId} status mapping changed to [{$status}]");
+        }
+
+        return $success;
+    }
+
+    public function forceAssignTicket($ticketId, $agentId, $adminId = null) {
+        $adminId = $adminId ?? ($_SESSION['user_id'] ?? null);
+
+        $sql = "UPDATE tickets SET assigned_to = :agent_id, status = 'Assigned' WHERE id = :ticket_id";
+        $stmt = $this->pdo->prepare($sql);
+        $success = $stmt->execute(['agent_id' => $agentId, 'ticket_id' => $ticketId]);
+
+        if ($success) {
+            $this->writeToLog($adminId, "System Update - Administrative Reassignment", 'Success', "Ticket #{$ticketId} forcefully routed to Agent ID: {$agentId}");
+        }
+
+        return $success;
+    }
+
+    public function deleteTicket($ticketId, $deletedBy = null) {
+        $deletedBy = $deletedBy ?? ($_SESSION['user_id'] ?? null);
+
+        $sql = "DELETE FROM tickets WHERE id = :ticket_id";
+        $stmt = $this->pdo->prepare($sql);
+        $success = $stmt->execute(['ticket_id' => $ticketId]);
+
+        if ($success) {
+            $this->writeToLog($deletedBy, "System Update - Ticket Purged", 'Success', "Ticket Data Record #{$ticketId} permanently scrubbed from system operations storage grids.");
+        }
+
+        return $success;
+    }
+
+    public function getMasterQueue() {
+        $sql = "SELECT t.*, u1.name as creator_name, u2.name as agent_name 
+                FROM tickets t 
+                JOIN users u1 ON t.created_by = u1.id 
+                LEFT JOIN users u2 ON t.assigned_to = u2.id
+                ORDER BY FIELD(t.priority, 'Critical', 'High', 'Medium', 'Low'), t.created_at DESC";
+        return $this->pdo->query($sql)->fetchAll();
+    }
+
+    public function getAllAgents() {
+        $sql = "SELECT id, name, role FROM users WHERE role IN ('Agent', 'Admin') ORDER BY name ASC";
+        return $this->pdo->query($sql)->fetchAll();
+    }
+
+    public function getSummaryMetrics() {
+        $metrics = [
+            'Total' => 0, 
+            'Open' => 0, 
+            'Assigned' => 0, 
+            'In Progress' => 0, 
+            'Resolved' => 0, 
+            'Closed' => 0
+        ];
+        
+        $sql = "SELECT status, COUNT(*) as count FROM tickets GROUP BY status";
+        $rows = $this->pdo->query($sql)->fetchAll();
+        
+        foreach ($rows as $row) {
+            if (array_key_exists($row['status'], $metrics)) {
+                $metrics[$row['status']] = (int)$row['count'];
+            }
+            $metrics['Total'] += (int)$row['count'];
+        }
+        return $metrics;
+    }
+
+    public function getPriorityMetrics() {
+        $sql = "SELECT priority, COUNT(*) as count FROM tickets GROUP BY priority";
+        return $this->pdo->query($sql)->fetchAll(PDO::FETCH_KEY_PAIR);
+    }
+
+    public function getAgentLoadMetrics() {
+        $sql = "SELECT u.name, COUNT(t.id) as active_tickets 
+                FROM users u 
+                LEFT JOIN tickets t ON u.id = t.assigned_to AND t.status != 'Closed'
+                WHERE u.role IN ('Agent', 'Admin')
+                GROUP BY u.id ORDER BY active_tickets DESC";
+        return $this->pdo->query($sql)->fetchAll();
+    }
 }
 ?>
