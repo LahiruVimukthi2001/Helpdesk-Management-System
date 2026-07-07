@@ -1,6 +1,6 @@
-System Administrator - Admin
-Requester(Employee) - requeat Person
-operations Agent(IT Support) - Do the task
+Admin - System Administrator
+Requeat Person - Requester(Employee)
+Do the task - operations Agent(IT Support)
 
 Lahiru Vimukthi
 lahiru@gmail.com
